@@ -1,0 +1,197 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  name      String
+  role      UserRole @default(VENDOR)
+  avatar    String?
+  phone     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  vendor    Vendor?
+  admin     Admin?
+  orders    Order[]
+  favorites Favorite[]
+
+  @@map("users")
+}
+
+model Vendor {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  companyName String
+  description String?
+  phone       String
+  address     String
+  website     String?
+  logo        String?
+  isActive    Boolean  @default(true)
+  rating      Float    @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  events Event[]
+  orders Order[]
+
+  @@map("vendors")
+}
+
+model Admin {
+  id     String @id @default(cuid())
+  userId String @unique
+  level  AdminLevel @default(SUPER)
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("admins")
+}
+
+model Event {
+  id          String      @id @default(cuid())
+  title       String
+  description String
+  category    String
+  basePrice   Float
+  imageUrl    String?
+  gallery     String[]    // Array of image URLs
+  rating      Float       @default(0)
+  reviewCount Int         @default(0)
+  status      EventStatus @default(PENDING)
+  featured    Boolean     @default(false)
+  vendorId    String
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  // Relations
+  vendor    Vendor    @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  services  Service[]
+  orders    Order[]
+  favorites Favorite[]
+  reviews   Review[]
+
+  @@map("events")
+}
+
+model Service {
+  id          String   @id @default(cuid())
+  name        String
+  description String
+  price       Float
+  duration    Int?     // in hours
+  isIncluded  Boolean  @default(true)
+  eventId     String
+
+  // Relations
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@map("services")
+}
+
+model Order {
+  id           String       @id @default(cuid())
+  customerName String
+  email        String
+  phone        String
+  eventDate    DateTime
+  venue        String?
+  guestCount   Int          @default(50)
+  comments     String?
+  totalAmount  Float
+  advancePaid  Float
+  status       OrderStatus  @default(PENDING)
+  paymentStatus PaymentStatus @default(PENDING)
+  eventId      String
+  vendorId     String
+  userId       String?
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  // Relations
+  event  Event  @relation(fields: [eventId], references: [id])
+  vendor Vendor @relation(fields: [vendorId], references: [id])
+  user   User?  @relation(fields: [userId], references: [id])
+
+  @@map("orders")
+}
+
+model Favorite {
+  id      String @id @default(cuid())
+  userId  String
+  eventId String
+
+  // Relations
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, eventId])
+  @@map("favorites")
+}
+
+model Review {
+  id        String   @id @default(cuid())
+  rating    Int      // 1-5
+  comment   String?
+  userId    String
+  eventId   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, eventId])
+  @@map("reviews")
+}
+
+// Enums
+enum UserRole {
+  VENDOR
+  ADMIN
+  CUSTOMER
+}
+
+enum AdminLevel {
+  SUPER
+  MODERATOR
+}
+
+enum EventStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  SUSPENDED
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  PENDING
+  PARTIAL
+  COMPLETED
+  REFUNDED
+  FAILED
+}
