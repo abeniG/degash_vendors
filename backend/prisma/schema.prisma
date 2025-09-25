@@ -1,5 +1,5 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
+// This is your Prisma schema file
+// Learn more about it in the docs: https://pris.ly/d/prisma-schema
 
 generator client {
   provider = "prisma-client-js"
@@ -26,6 +26,7 @@ model User {
   admin     Admin?
   orders    Order[]
   favorites Favorite[]
+  reviews   Review[]  // back-relation for Review
 
   @@map("users")
 }
@@ -65,12 +66,12 @@ model Admin {
 
 model Event {
   id          String      @id @default(cuid())
-  title       String
+  title       String      @unique
   description String
   category    String
   basePrice   Float
   imageUrl    String?
-  gallery     String[]    // Array of image URLs
+  gallery     String[]
   rating      Float       @default(0)
   reviewCount Int         @default(0)
   status      EventStatus @default(PENDING)
@@ -79,7 +80,6 @@ model Event {
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
 
-  // Relations
   vendor    Vendor    @relation(fields: [vendorId], references: [id], onDelete: Cascade)
   services  Service[]
   orders    Order[]
@@ -88,6 +88,7 @@ model Event {
 
   @@map("events")
 }
+
 
 model Service {
   id          String   @id @default(cuid())
@@ -105,29 +106,30 @@ model Service {
 }
 
 model Order {
-  id           String       @id @default(cuid())
+  id           String        @id @default(cuid())
   customerName String
   email        String
   phone        String
   eventDate    DateTime
   venue        String?
-  guestCount   Int          @default(50)
+  guestCount   Int           @default(50)
   comments     String?
   totalAmount  Float
   advancePaid  Float
-  status       OrderStatus  @default(PENDING)
+  status       OrderStatus   @default(PENDING)
   paymentStatus PaymentStatus @default(PENDING)
   eventId      String
   vendorId     String
   userId       String?
-  createdAt    DateTime     @default(now())
-  updatedAt    DateTime     @updatedAt
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
 
   // Relations
   event  Event  @relation(fields: [eventId], references: [id])
   vendor Vendor @relation(fields: [vendorId], references: [id])
   user   User?  @relation(fields: [userId], references: [id])
 
+  @@unique([eventId, eventDate])
   @@map("orders")
 }
 
